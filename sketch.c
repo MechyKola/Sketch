@@ -147,7 +147,6 @@ bool processSketch(display *d, void *data, const char pressedKey) {
   
   // handle nextframe 
   if(s->start != 0) {
-    printf("\n\n%d\n\n", s->start);
     for(int i = 0; i < s->start; i++) {
       b = fgetc(in);
     }
@@ -156,15 +155,9 @@ bool processSketch(display *d, void *data, const char pressedKey) {
 
   while(! feof(in)) {
     b = fgetc(in);
-    
-    for(int i = 0; i < 8; i++) {
-      printf("%d", ((b >> i) & 1));
-    } printf("\n");
     obey(d, s, b);
 
     if(getOpcode(b) == TOOL && getOperand(b) == NEXTFRAME) {
-      printf("after NEXTFRAME thing\n");
-      printf("%d\n", s->start);
       s->start++;
       s->end = false;
       s->data = 0;
