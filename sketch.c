@@ -62,28 +62,70 @@ void processDX(state *s, byte b) {
 
 void processDY(display *d, state *s, byte b) {
   s->ty += getOperand(b);
-  if(s->tool == LINE) {
-    line(d, s->x, s->y, s->tx, s->ty);
+  switch(s->tool) {
+    case LINE:
+      line(d, s->x, s->y, s->tx, s->ty);
+      break;
+    case BLOCK:
+      block(d, s->x, s->y, s->tx - s->x, s->ty - s->y);
+      break;
   }
   s->y = s->ty;
   s->x = s->tx;
 }
 
-void switchTOOL(state *s, byte b) {
-  s->tool = binaryToInt(b, 6);
+void processTOOL(display *d, state *s, byte b) {
+  switch(binaryToInt(b, 6)) {
+    case NONE:
+      s->tool = NONE;
+      break;
+    case LINE:
+      s->tool = LINE;
+      break;
+    case BLOCK:
+      s->tool = BLOCK;
+      break;
+    case COLOUR:
+      colour(d, s->data);
+      break;
+    case TARGETX:
+      s->tx = s->data;
+      break;
+    case TARGETY:
+      s->ty = s->data;
+      break;
+    case SHOW:
+      show(d);
+      break;
+    case PAUSE:
+      pause(d, s->data);
+      break;
+    case NEXTFRAME:
+      show(d);
+      break;
+  }
+  s->data = 0;
+}
+
+void processData(state *s, byte b) {
+  s->data = s->data << 6;
+  s->data += binaryToInt(b, 6);
 }
 
 // Execute the next byte of the command sequence.
 void obey(display *d, state *s, byte op) {
   switch(getOpcode(op)) {
-    case 0:
+    case DX:
       processDX(s, op);
       break;
-    case 1:
+    case DY:
       processDY(d, s, op);
       break;
-    case 2:
-      switchTOOL(s, op);
+    case TOOL:
+      processTOOL(d, s, op);
+      break;
+    case DATA:
+      processData(s, op);
       break;
   }
 }
@@ -96,14 +138,52 @@ bool processSketch(display *d, void *data, const char pressedKey) {
   char *filename = getName(d);
   FILE *in = fopen(filename, "rb");
   byte b;
-  state *s = newState();
+
+  if(data == NULL) {
+    return (pressedKey == 27);
+  }
+  state *s = (state*) data;
+
+  
+  // handle nextframe 
+  if(s->start != 0) {
+    printf("\n\n%d\n\n", s->start);
+    for(int i = 0; i < s->start + 1; i++) {
+      b = fgetc(in);
+    }
+  }
+  
+
   while(! feof(in)) {
     b = fgetc(in);
     obey(d, s, b);
+
+    if(getOpcode(b) == TOOL && getOperand(b) == NEXTFRAME) {
+      printf("after NEXTFRAME thing\n");
+      printf("%d\n", s->start);
+      s->end = false;
+      s->data = 0;
+      s->tool = LINE;
+      s->tx = 0;
+      s->ty = 0;
+      s->x = 0;
+      s->y = 0;
+      return 0;
+    }
+    
+    s->start++;
   }
   show(d);
   fclose(in);
-  freeState(s);
+
+  // reset state
+  s->start = 0;
+  s->data = 0;
+  s->tool = LINE;
+  s->tx = 0;
+  s->ty = 0;
+  s->x = 0;
+  s->y = 0;
 
     //TO DO: OPEN, PROCESS/DRAW A SKETCH FILE BYTE BY BYTE, THEN CLOSE IT
     //NOTE: CHECK DATA HAS BEEN INITIALISED... if (data == NULL) return (pressedKey == 27);
