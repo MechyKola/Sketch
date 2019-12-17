@@ -56,9 +56,36 @@ int getOperand(byte b) {
   return value;
 }
 
+void processDX(state *s, byte b) {
+  s->tx += getOperand(b);
+}
+
+void processDY(display *d, state *s, byte b) {
+  s->ty += getOperand(b);
+  if(s->tool == LINE) {
+    line(d, s->x, s->y, s->tx, s->ty);
+  }
+  s->y = s->ty;
+  s->x = s->tx;
+}
+
+void switchTOOL(state *s, byte b) {
+  s->tool = binaryToInt(b, 6);
+}
+
 // Execute the next byte of the command sequence.
 void obey(display *d, state *s, byte op) {
-  //TO DO
+  switch(getOpcode(op)) {
+    case 0:
+      processDX(s, op);
+      break;
+    case 1:
+      processDY(d, s, op);
+      break;
+    case 2:
+      switchTOOL(s, op);
+      break;
+  }
 }
 
 // Draw a frame of the sketch file. For basic and intermediate sketch files
@@ -66,6 +93,17 @@ void obey(display *d, state *s, byte op) {
 // For advanced sketch files this means drawing the current frame whenever
 // this function is called.
 bool processSketch(display *d, void *data, const char pressedKey) {
+  char *filename = getName(d);
+  FILE *in = fopen(filename, "rb");
+  byte b;
+  state *s = newState();
+  while(! feof(in)) {
+    b = fgetc(in);
+    obey(d, s, b);
+  }
+  show(d);
+  fclose(in);
+  freeState(s);
 
     //TO DO: OPEN, PROCESS/DRAW A SKETCH FILE BYTE BY BYTE, THEN CLOSE IT
     //NOTE: CHECK DATA HAS BEEN INITIALISED... if (data == NULL) return (pressedKey == 27);
