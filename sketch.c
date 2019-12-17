@@ -8,6 +8,14 @@
 // Allocate memory for a drawing state and initialise it
 state *newState() {
   state *newStatePointer = malloc(sizeof(state));
+  newStatePointer->start = 0;
+  newStatePointer->end = false;
+  newStatePointer->data = 0;
+  newStatePointer->tool = LINE;
+  newStatePointer->tx = 0;
+  newStatePointer->ty = 0;
+  newStatePointer->x = 0;
+  newStatePointer->y = 0;
 
   return newStatePointer; // this is a placeholder only
 }
