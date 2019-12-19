@@ -165,11 +165,36 @@ char* unpackPgm(int *height, int *width, int *colorSizeBack, char *filename) {
     return imageMatrix;
 }
 
+// accepts 32 bit integer representing rgb and writes it to characters in string
+char* intAsData(char *toWrite, int colorValue) {
+    for(int i = 0; i < 6; i++) {
+        toWrite[5 - i] = ((colorValue >> (6 * i)) & 63) + 128 + 64;
+    }
+    return toWrite;
+}
+
+// turns 1 byte greyscale into rgba
+int greyscaleAsRGBA(int greyscale) {
+    int color = greyscale + (greyscale << 8) + (greyscale << 16) + (255 << 24);
+    return color;
+}
+
+void writeSkRLE(char *imageMatrix, int colorSize, int height, int width) {
+    // encode using rle, top to bottom then bottom to top
+    // incremnting DX by 1 each time
+    // alternating between going down and up with DY
+    // updating color each time it changes
+}
+
 // convert .pgm to .sk - this function unpacks the file
 void convertToSk(char* filename) {
     int *height = malloc(sizeof(int));
     int *width = malloc(sizeof(int));
     int *colorSize = malloc(sizeof(int));
+    if(colorSize != 1) {
+        fprintf(stderr, "This color size isn't implemented yet\n");
+        exit(1);
+    }
     char *imageMatrix = unpackPgm(height, width, colorSize, filename);
 
     // rle by making horizontal lines across entire image
