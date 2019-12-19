@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <stdbool.h>
-#include "displayfull.h"
+#include <unistd.h>
+// #include "displayfull.h"
 
 
 // yuh
@@ -80,7 +81,19 @@ bool isWhitespace(char character) {
 }
 
 char* unpackPgm(int *height, int *width, int *colorSizeBack, char *filename) {
+    // validate file
+    if(!(access( filename, F_OK ) != -1)) {
+        fprintf(stderr, "File not found\n");
+        exit(1);
+    }
+
     FILE *pgmFile = fopen(filename, "rb");
+    fseek(pgmFile, 0L, SEEK_END);
+    if(ftell(pgmFile) < 3) {
+        fprintf(stderr, "File too small - check if file is valid\n");
+        exit(1);
+    }
+    rewind(pgmFile);
 
     // verify pgm file by checking first characters are 'P' and '5'
     if(fgetc(pgmFile) != 'P' || fgetc(pgmFile) != '5') {
