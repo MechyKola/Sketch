@@ -450,6 +450,18 @@ void testUnpackPgm() {
     assert(__LINE__, remove(filename) == 0);
 }
 
+void testWriteSkRLE() {
+    unsigned char *matrix = malloc(2);
+    *matrix = 'o';
+    char filename[] = "testingSkRLE.test.pgm";
+
+    writeSkRLE(matrix, 1, 1, 1, filename);
+    FILE *sk = fopen("testingSkRLE.test.sk", "rb");
+    fclose(sk);
+    remove("testingSkRLE.test.sk");
+    free(matrix);
+}
+
 // run all tests
 void test() {
     testSubStringSlicing();
@@ -460,6 +472,7 @@ void test() {
     testBitsToString();
     testWriteColor();
     testUnpackPgm();
+    testWriteSkRLE();
     printf("All tests passed\n");
 }
 
