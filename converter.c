@@ -90,20 +90,20 @@ unsigned long greyscaleAsRGBA(unsigned long greyscale) {
     return color;
 }
 
-void writeColor(FILE *fileToWriteTo, char *colorData) {
-    for(int k = 0; k < 6; k++) {
-        fputc(colorData[k], fileToWriteTo);
-    }
-    // telling sketch to process data as color
-    fputc(128 + 3, fileToWriteTo);
-}
-
 // accepts 32 bit integer representing rgb and writes it to characters in string
 void dataBitsToString(char *toWrite, unsigned long colorValue) {
     for(int i = 0; i < 6; i++) {
         toWrite[5 - i] = ((colorValue >> (6 * i)) & 63) + 128 + 64;
         // printf("%c", toWrite[5 - i]);
     }
+}
+
+void writeColor(FILE *fileToWriteTo, char *colorData) {
+    for(int k = 0; k < 6; k++) {
+        fputc(colorData[k], fileToWriteTo);
+    }
+    // telling sketch to process data as color
+    fputc(128 + 3, fileToWriteTo);
 }
 
 // edits passed in values, returns pointer to char array of greyscale values
@@ -386,12 +386,80 @@ void testWhitespace() {
 
 }
 
+void testGreyscale() {
+    assert(__LINE__, greyscaleAsRGBA(0) == 255);
+    assert(__LINE__, greyscaleAsRGBA(255) == 4294967295);
+}
+
+void testBitsToString() {
+    char *data = malloc(6);
+    dataBitsToString(data, 0);
+    assert(__LINE__, data[0] == (char)192);
+    assert(__LINE__, data[1] == (char)192);
+    assert(__LINE__, data[2] == (char)192);
+    assert(__LINE__, data[3] == (char)192);
+    assert(__LINE__, data[4] == (char)192);
+    assert(__LINE__, data[5] == (char)192);
+    dataBitsToString(data, 4294967295);
+    assert(__LINE__, data[0] == (char)195);
+    assert(__LINE__, data[1] == (char)255);
+    assert(__LINE__, data[2] == (char)255);
+    assert(__LINE__, data[3] == (char)255);
+    assert(__LINE__, data[4] == (char)255);
+    assert(__LINE__, data[5] == (char)255);
+    free(data);
+}
+
+void testWriteColor() {
+    FILE *testFile = fopen("testingThings.test.sk", "w+");
+
+    char toWrite[] = "things";
+    writeColor(testFile, toWrite);
+    fclose(testFile);
+    testFile = fopen("testingThings.test.sk", "rb");
+    assert(__LINE__, fgetc(testFile) == 't');
+    assert(__LINE__, fgetc(testFile) == 'h');
+    assert(__LINE__, fgetc(testFile) == 'i');
+    assert(__LINE__, fgetc(testFile) == 'n');
+    assert(__LINE__, fgetc(testFile) == 'g');
+    assert(__LINE__, fgetc(testFile) == 's');
+    assert(__LINE__, fgetc(testFile) == 131);
+    fclose(testFile);
+    assert(__LINE__, remove("testingThings.test.sk") == 0);
+}
+
+void testUnpackPgm() {
+    char *filename = "testingPgmUnpack.test.pgm";
+    FILE *testingFile = fopen(filename, "w+");
+    fprintf(testingFile, "P5 200 200 255 o");
+    fclose(testingFile);
+
+    int *height = malloc(sizeof(int));
+    int *width = malloc(sizeof(int));
+    int *colorSizeBack = malloc(sizeof(int));
+
+    unsigned char *testMatrix = unpackPgm(height, width, colorSizeBack, filename);
+    assert(__LINE__, *colorSizeBack == 1);
+    assert(__LINE__, *width == 200);
+    assert(__LINE__, *height == 200);
+    assert(__LINE__, *testMatrix == 'o');
+    free(testMatrix);
+    free(height);
+    free(width);
+    free(colorSizeBack);
+    assert(__LINE__, remove(filename) == 0);
+}
+
 // run all tests
 void test() {
     testSubStringSlicing();
     testCharDigits();
     testInt();
     testWhitespace();
+    testGreyscale();
+    testBitsToString();
+    testWriteColor();
+    testUnpackPgm();
     printf("All tests passed\n");
 }
 
