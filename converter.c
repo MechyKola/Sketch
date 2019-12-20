@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -254,16 +255,16 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
         }
         counter = 0;
         // hardcoded DX1, changing from line to none and back
-        fputc(128, skFile);
         if(x != width - 1) {
+            fputc(128, skFile);
             fputc(1, skFile);
             if(down) {
                 fputc(64 + 63, skFile);
             } else {
                 fputc(64 + 1, skFile);
             }
+            fputc(128 + 1, skFile);
         }
-        fputc(128 + 1, skFile);
     }
 
     free(currentColorString);
@@ -452,11 +453,28 @@ void testUnpackPgm() {
 
 void testWriteSkRLE() {
     unsigned char *matrix = malloc(2);
-    *matrix = 'o';
+    *matrix = (char)255;
     char filename[] = "testingSkRLE.test.pgm";
 
     writeSkRLE(matrix, 1, 1, 1, filename);
     FILE *sk = fopen("testingSkRLE.test.sk", "rb");
+    
+    // selecting line tool
+    assert(__LINE__, fgetc(sk) == 129);
+    // colour data
+    assert(__LINE__, fgetc(sk) == 195);
+    assert(__LINE__, fgetc(sk) == 255);
+    assert(__LINE__, fgetc(sk) == 255);
+    assert(__LINE__, fgetc(sk) == 255);
+    assert(__LINE__, fgetc(sk) == 255);
+    assert(__LINE__, fgetc(sk) == 255);
+    // colour tool
+    assert(__LINE__, fgetc(sk) == 131);
+    // a single dy down
+    assert(__LINE__, fgetc(sk) == 65);
+    // check that end of file
+    assert(__LINE__, fgetc(sk) == -1);
+
     fclose(sk);
     remove("testingSkRLE.test.sk");
     free(matrix);
