@@ -225,7 +225,7 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
             down = true;
             for(int y = 0; y < height; y++) {
                 if((currentGreyValue == imageMatrix[height * x + y]) &&
-                counter < 32) {
+                counter < 31) {
                     counter++;
                 } else {
                     fputc(64 + counter, skFile);
@@ -242,7 +242,7 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
             down = false;
             for(int y = height - 1; y > -1; y--) {
                 if((currentGreyValue == imageMatrix[height * x + y]) &&
-                counter > -33) {
+                counter > -32) {
                     counter--;
                 } else {
                     // convert into 6 bit two's complement
