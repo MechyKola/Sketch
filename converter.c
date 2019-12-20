@@ -82,7 +82,7 @@ bool isWhitespace(char character) {
 
 unsigned char* unpackPgm(int *height, int *width, int *colorSizeBack, char *filename) {
     // validate file
-    if(!(access( filename, F_OK ) != -1)) {
+    if(!(access(filename, F_OK) != -1)) {
         fprintf(stderr, "File not found\n");
         exit(1);
     }
@@ -136,7 +136,6 @@ unsigned char* unpackPgm(int *height, int *width, int *colorSizeBack, char *file
     char maxValString[] = "xxxxx";
     int counter = 0;
     while(!feof(pgmFile) && !isWhitespace(currentChar)) {
-        printf("%c\n", currentChar);
         maxValString[counter] = currentChar;
         currentChar = fgetc(pgmFile);
     }
@@ -159,16 +158,6 @@ unsigned char* unpackPgm(int *height, int *width, int *colorSizeBack, char *file
             imageMatrix[j * imageHeight + i] = (unsigned char) fgetc(pgmFile);
         }
     }
-    /*
-    while(!feof(pgmFile)) {
-        imageMatrix[column][row] = fgetc(pgmFile);
-        column++;
-        if(column == *width) {
-            row++;
-            column = 0;
-        }
-    }
-    */
 
     fclose(pgmFile);
 
@@ -206,10 +195,8 @@ void writeColor(FILE *fileToWriteTo, char *colorData) {
 // alternating between going down and up with DY
 // updating color each time it changes
 void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width) {
-    int counter = 0;
     unsigned long currentGreyValue = *imageMatrix;
     char* currentColorString = malloc(6); // 32 bits of data, 6 chars/bytes
-    bool down = true;
     FILE *skFile = fopen("test.sk", "w+");
 
     // sets tool to line and initialise colour
@@ -217,6 +204,8 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
     dataBitsToString(currentColorString, greyscaleAsRGBA(currentGreyValue));
     writeColor(skFile, currentColorString);
 
+    bool down = true;
+    int counter = 0;
     // x coordinate of the current coordinate
     for(int x = 0; x < width; x++) {
         // checks if the current reader direction is down or not
@@ -262,7 +251,7 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
         if(x != width - 1) {
             fputc(1, skFile);
             if(down) {
-                fputc(64 + 32 + 16 + 8 + 4 + 2 + 1, skFile);
+                fputc(64 + 63, skFile);
             } else {
                 fputc(64 + 1, skFile);
             }
@@ -272,6 +261,7 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
 
     free(currentColorString);
     fclose(skFile);
+    printf("File myimage.sk has been written.\n");
 }
 
 // convert .pgm to .sk - this function unpacks the file
@@ -294,8 +284,108 @@ void convertToSk(char* filename) {
     free(colorSize);
 }
 
+
+// Testing
+
+// A replacement for the library assert function.
+void assert(int line, bool b) {
+  if (b) return;
+  printf("The test on line %d fails.\n", line);
+  exit(1);
+}
+
+void testSubStringSlicing() {
+    char *newString = substringSlice("abc", 1, 1);
+    assert(__LINE__, strcmp(newString, "") == 0);
+    free(newString);
+
+    newString = substringSlice("abc", 0, 3);
+    assert(__LINE__, strcmp(newString, "abc") == 0);
+    free(newString);
+
+    newString = substringSlice("abc", 0, 1);
+    assert(__LINE__, strcmp(newString, "a") == 0);
+    free(newString);
+
+    newString = substringSlice("abc", 1, 2);
+    assert(__LINE__, strcmp(newString, "b") == 0);
+    free(newString);
+
+    newString = substringSlice("abc", 2, 3);
+    assert(__LINE__, strcmp(newString, "c") == 0);
+    free(newString);
+}
+
+void testCharDigits() {
+    // check int detection
+    assert(__LINE__, checkChar('0'));
+    assert(__LINE__, checkChar('1'));
+    assert(__LINE__, checkChar('2'));
+    assert(__LINE__, checkChar('3'));
+    assert(__LINE__, checkChar('4'));
+    assert(__LINE__, checkChar('5'));
+    assert(__LINE__, checkChar('6'));
+    assert(__LINE__, checkChar('7'));
+    assert(__LINE__, checkChar('8'));
+    assert(__LINE__, checkChar('9'));
+
+    // check non int detection
+    assert(__LINE__, ~checkChar('-'));
+    assert(__LINE__, ~checkChar('z'));
+    assert(__LINE__, ~checkChar('!'));
+    assert(__LINE__, ~checkChar(';'));
+    assert(__LINE__, ~checkChar('`'));
+    assert(__LINE__, ~checkChar('#'));
+}
+
+void testInt() {
+    // string to int conversion
+    char *testingInt = malloc(2 * sizeof(char));
+    strcpy(testingInt, "0");
+    assert(__LINE__, freeingConvertStrToInt(testingInt) == 0);
+
+    testingInt = malloc(4 * sizeof(char));
+    strcpy(testingInt, "125");
+    assert(__LINE__, freeingConvertStrToInt(testingInt) == 125);
+
+    testingInt = malloc(8 * sizeof(char));
+    strcpy(testingInt, "3452489");
+    assert(__LINE__, freeingConvertStrToInt(testingInt) == 3452489);
+
+    testingInt = malloc(5 * sizeof(char));
+    strcpy(testingInt, "0000");
+    assert(__LINE__, freeingConvertStrToInt(testingInt) == 0);
+
+    testingInt = malloc(6 * sizeof(char));
+    strcpy(testingInt, "00809");
+    assert(__LINE__, freeingConvertStrToInt(testingInt) == 809);
+}
+
+void testWhitespace() {
+    // check whitespace detection
+    assert(__LINE__, isWhitespace(' '));
+    assert(__LINE__, isWhitespace('\t'));
+    assert(__LINE__, isWhitespace('\r'));
+    assert(__LINE__, isWhitespace('\n'));
+    assert(__LINE__, isWhitespace('\v'));
+    assert(__LINE__, isWhitespace('\f'));
+
+    // check non whitespace detection
+    assert(__LINE__, ~isWhitespace('-'));
+    assert(__LINE__, ~isWhitespace('z'));
+    assert(__LINE__, ~isWhitespace('!'));
+    assert(__LINE__, ~isWhitespace(';'));
+    assert(__LINE__, ~isWhitespace('0'));
+    assert(__LINE__, ~isWhitespace('#'));
+
+}
+
 // run all tests
 void test() {
+    testSubStringSlicing();
+    testCharDigits();
+    testInt();
+    testWhitespace();
     printf("All tests passed\n");
 }
 
