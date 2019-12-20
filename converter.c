@@ -355,15 +355,21 @@ unsigned char getColor(FILE *sketch, unsigned char byte) {
     return color;
 }
 
-void writePgm(int height, int width, unsigned char *matrix) {
-    FILE *pgmFile = fopen("test.pgm", "w+");
+void writePgm(char *filename, int height, int width, unsigned char *matrix) {
+    char newFilename[strlen(filename) + 2];
+    strcpy(newFilename, filename);
+    newFilename[strlen(filename) - 2] = 'p';
+    newFilename[strlen(filename) - 1] = 'g';
+    newFilename[strlen(filename) - 0] = 'm';
+    newFilename[strlen(filename) + 1] = '\0';
+    FILE *pgmFile = fopen(newFilename, "w+");
     fprintf(pgmFile, "P5 %d %d %d\n", width, height, 255);
     for(int i = 0; i < 200 * 200; i++) {
         fputc(matrix[i], pgmFile);
     }
 
     fclose(pgmFile);
-    printf("File pgm has been written.\n");
+    printf("File %s has been written.\n", newFilename);
 }
 
 // mostly just creates matrix
@@ -408,7 +414,7 @@ void convertSkToPgm(char *filename) {
         currentByte = fgetc(sk);
     }
 
-    writePgm(200, 200, matrix);
+    writePgm(filename, 200, 200, matrix);
     free(matrix);
     free(pen);
 }
@@ -602,6 +608,26 @@ void testWriteSkRLE() {
     free(matrix);
 }
 
+void testBinaryToInt() {
+    assert(__LINE__, binaryToInt(255, 8) == 255);
+    assert(__LINE__, binaryToInt(255, 7) == 127);
+    assert(__LINE__, binaryToInt(16, 5) == 16);
+    assert(__LINE__, binaryToInt(0, 0) == 0);
+}
+
+void testOpcode() {
+    assert(__LINE__, getOpcode(255) == 3);
+    assert(__LINE__, getOpcode(128) == 2);
+    assert(__LINE__, getOpcode(64) == 1);
+    assert(__LINE__, getOpcode(35) == 0);
+}
+
+void testOperand() {
+    assert(__LINE__, getOperand(255) == -1);
+    assert(__LINE__, getOperand(16) == 16);
+    assert(__LINE__, getOperand(0) == 0);
+}
+
 // run all tests
 void test() {
     testSubStringSlicing();
@@ -613,6 +639,9 @@ void test() {
     testWriteColor();
     testUnpackPgm();
     testWriteSkRLE();
+    testBinaryToInt();
+    testOpcode();
+    testOperand();
     printf("All tests passed\n");
 }
 
