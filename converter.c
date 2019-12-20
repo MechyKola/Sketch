@@ -628,6 +628,85 @@ void testOperand() {
     assert(__LINE__, getOperand(0) == 0);
 }
 
+void testRepeatedPgmSkConversion() {
+    long fractalPgmSize;
+    long fractalSkSize;
+    long bandsPgmSize;
+    long bandsSkSize;
+
+    // try bands
+    if(access("bands.pgm", F_OK) != -1) {
+        char *filenameThing = malloc(10);
+        strcpy(filenameThing, "bands.pgm");
+        FILE *test = fopen(filenameThing, "rb");
+        fseek(test, 0L, SEEK_END);
+        bandsPgmSize = ftell(test);
+        fclose(test);
+
+        convertPgmToSk(filenameThing);
+
+        test = fopen("bands.sk", "rb");
+        fseek(test, 0L, SEEK_END);
+        bandsSkSize = ftell(test);
+        fclose(test);
+
+        strcpy(filenameThing, "bands.sk");
+        convertSkToPgm(filenameThing);
+
+        test = fopen("bands.pgm", "rb");
+        fseek(test, 0L, SEEK_END);
+        assert(__LINE__, bandsPgmSize == ftell(test));
+        fclose(test);
+
+        strcpy(filenameThing, "bands.pgm");
+        convertPgmToSk(filenameThing);
+
+        test = fopen("bands.sk", "rb");
+        fseek(test, 0L, SEEK_END);
+        assert(__LINE__, bandsSkSize == ftell(test));
+        fclose(test);
+
+        remove("bands.sk");
+        free(filenameThing);
+    }
+
+    // try fractal
+    if(access("fractal.pgm", F_OK) != -1) {
+        char *filenameThing = malloc(12);
+        strcpy(filenameThing, "fractal.pgm");
+        FILE *test = fopen(filenameThing, "rb");
+        fseek(test, 0L, SEEK_END);
+        fractalPgmSize = ftell(test);
+        fclose(test);
+
+        convertPgmToSk(filenameThing);
+
+        test = fopen("fractal.sk", "rb");
+        fseek(test, 0L, SEEK_END);
+        fractalSkSize = ftell(test);
+        fclose(test);
+
+        strcpy(filenameThing, "fractal.sk");
+        convertSkToPgm(filenameThing);
+
+        test = fopen("fractal.pgm", "rb");
+        fseek(test, 0L, SEEK_END);
+        assert(__LINE__, fractalPgmSize == ftell(test));
+        fclose(test);
+
+        strcpy(filenameThing, "fractal.pgm");
+        convertPgmToSk(filenameThing);
+
+        test = fopen("fractal.sk", "rb");
+        fseek(test, 0L, SEEK_END);
+        assert(__LINE__, fractalSkSize == ftell(test));
+        fclose(test);
+
+        remove("fractal.sk");
+        free(filenameThing);
+    }
+}
+
 // run all tests
 void test() {
     testSubStringSlicing();
@@ -642,6 +721,7 @@ void test() {
     testBinaryToInt();
     testOpcode();
     testOperand();
+    testRepeatedPgmSkConversion();
     printf("All tests passed\n");
 }
 
