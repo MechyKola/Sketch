@@ -1,4 +1,3 @@
-/* directed graph */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +5,6 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <unistd.h>
-// #include "displayfull.h"
 
 
 // yuh
@@ -67,6 +65,8 @@ char* substringSlice(char userInput[], int startIndex, int endIndex) {
 }
 
 
+// pgm -> sketch functions
+
 // helper function checking for all types of whitespace
 bool isWhitespace(char character) {
     if(character == ' ' || 
@@ -80,6 +80,33 @@ bool isWhitespace(char character) {
     return false;
 }
 
+// turns 1 byte greyscale into rgba
+unsigned long greyscaleAsRGBA(unsigned long greyscale) {
+    unsigned long idkWhyCWantsMeToDoThis = 255;
+    unsigned long color = 255 + 
+    ((greyscale << 8) & (255 << 8)) + 
+    ((greyscale << 16) & (255 << 16)) + 
+    ((greyscale << 24) & (idkWhyCWantsMeToDoThis << 24));
+    return color;
+}
+
+void writeColor(FILE *fileToWriteTo, char *colorData) {
+    for(int k = 0; k < 6; k++) {
+        fputc(colorData[k], fileToWriteTo);
+    }
+    // telling sketch to process data as color
+    fputc(128 + 3, fileToWriteTo);
+}
+
+// accepts 32 bit integer representing rgb and writes it to characters in string
+void dataBitsToString(char *toWrite, unsigned long colorValue) {
+    for(int i = 0; i < 6; i++) {
+        toWrite[5 - i] = ((colorValue >> (6 * i)) & 63) + 128 + 64;
+        // printf("%c", toWrite[5 - i]);
+    }
+}
+
+// edits passed in values, returns pointer to char array of greyscale values
 unsigned char* unpackPgm(int *height, int *width, int *colorSizeBack, char *filename) {
     // validate file
     if(!(access(filename, F_OK) != -1)) {
@@ -164,40 +191,20 @@ unsigned char* unpackPgm(int *height, int *width, int *colorSizeBack, char *file
     return imageMatrix;
 }
 
-// accepts 32 bit integer representing rgb and writes it to characters in string
-void dataBitsToString(char *toWrite, unsigned long colorValue) {
-    for(int i = 0; i < 6; i++) {
-        toWrite[5 - i] = ((colorValue >> (6 * i)) & 63) + 128 + 64;
-        // printf("%c", toWrite[5 - i]);
-    }
-}
-
-// turns 1 byte greyscale into rgba
-unsigned long greyscaleAsRGBA(unsigned long greyscale) {
-    unsigned long idkWhyCWantsMeToDoThis = 255;
-    unsigned long color = 255 + 
-    ((greyscale << 8) & (255 << 8)) + 
-    ((greyscale << 16) & (255 << 16)) + 
-    ((greyscale << 24) & (idkWhyCWantsMeToDoThis << 24));
-    return color;
-}
-
-void writeColor(FILE *fileToWriteTo, char *colorData) {
-    for(int k = 0; k < 6; k++) {
-        fputc(colorData[k], fileToWriteTo);
-    }
-    // telling sketch to process data as color
-    fputc(128 + 3, fileToWriteTo);
-}
-
 // encode using rle, top to bottom then bottom to top
 // incremnting DX by 1 each time
 // alternating between going down and up with DY
 // updating color each time it changes
-void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width) {
+void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width, char *filename) {
     unsigned long currentGreyValue = *imageMatrix;
     char* currentColorString = malloc(6); // 32 bits of data, 6 chars/bytes
-    FILE *skFile = fopen("test.sk", "w+");
+
+    // rename file
+    filename[strlen(filename) - 3] = 's';
+    filename[strlen(filename) - 2] = 'k';
+    filename[strlen(filename) - 1] = '\0';
+
+    FILE *skFile = fopen(filename, "w+");
 
     // sets tool to line and initialise colour
     fputc(128 + 1, skFile);
@@ -261,10 +268,9 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
 
     free(currentColorString);
     fclose(skFile);
-    printf("File myimage.sk has been written.\n");
+    printf("File %s has been written.\n", filename);
 }
 
-// convert .pgm to .sk - this function unpacks the file
 void convertToSk(char* filename) {
     int *height = malloc(sizeof(int));
     int *width = malloc(sizeof(int));
@@ -276,7 +282,7 @@ void convertToSk(char* filename) {
     }
 
     // rle by making horizontal lines across entire image
-    writeSkRLE(imageMatrix, *colorSize, *height, *width);
+    writeSkRLE(imageMatrix, *colorSize, *height, *width, filename);
 
     free(imageMatrix);
     free(height);
