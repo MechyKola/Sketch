@@ -748,9 +748,9 @@ int main(int n, char *args[n]) {
 
         default:
             fprintf(stderr, "Use ./converter myimage.pgm format\n");
-            fprintf(stderr, "To turn pgm file into an sk file\n\n");
+            fprintf(stderr, "to turn pgm file into an sk file\n\n");
             fprintf(stderr, "Use ./converter myimage.sk format\n");
-            fprintf(stderr, "To turn sk file into a pgm file\n\n");
+            fprintf(stderr, "to turn sk file into a pgm file\n\n");
             exit(1);
     }
 
