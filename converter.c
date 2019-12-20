@@ -8,9 +8,9 @@
 #include <unistd.h>
 
 
-// yuh
-struct ye { int id; };
-typedef struct ye ye;
+// struct to draw over pgm matrix
+struct pgmPen { int x; int y; unsigned char color; bool active; };
+typedef struct pgmPen pgmPen;
 
 
 // number functions
@@ -272,7 +272,7 @@ void writeSkRLE(unsigned char *imageMatrix, int colorSize, int height, int width
     printf("File %s has been written.\n", filename);
 }
 
-void convertToSk(char* filename) {
+void convertPgmToSk(char *filename) {
     int *height = malloc(sizeof(int));
     int *width = malloc(sizeof(int));
     int *colorSize = malloc(sizeof(int));
@@ -289,6 +289,128 @@ void convertToSk(char* filename) {
     free(height);
     free(width);
     free(colorSize);
+}
+
+
+// sk -> pgm
+
+// binary to int helper function, for unisigned binary
+int binaryToInt(unsigned char b, int bits) {
+  int multiplier = 1;
+  int accumulator = 0;
+
+  for(int i = 0; i < bits; i++) {
+    accumulator += ((b >> i) & 1) * multiplier;
+    multiplier *= 2;
+  }
+
+  return accumulator;
+}
+
+// Extract an opcode from a byte (two most significant bits).
+int getOpcode(unsigned char b) {
+  int accumulator = 0;
+  accumulator += (b >> 6) & 1;
+  accumulator += ((b >> 7) & 1) * 2;
+  return accumulator;
+}
+
+// Extract an operand (-32..31) from the rightmost 6 bits of a byte.
+int getOperand(unsigned char b) {
+  int value = binaryToInt(b, 5);
+  if(((b >> 5) & 1) == 1) {
+    value -= 32;
+  }
+
+  return value;
+}
+
+void applyLine(unsigned char *matrix, pgmPen *pen, int height, int width, int length) {
+    if(pen->active) {
+        if(length > 0) {
+            for(int i = pen->y; i < (pen->y + length); i++) {
+                matrix[(i * width) + pen->x] = pen->color;
+            }
+        } else {
+            for(int i = pen->y; i > (pen->y + length); i--) {
+                matrix[(i * width) + pen->x] = pen->color;
+            }
+        }
+    }
+    pen->y += length;
+}
+
+// all color encounters are 6 bits of data followed by a color command
+unsigned char getColor(FILE *sketch, unsigned char byte) {
+    unsigned long color = getOperand(byte);
+    // first byte already processed by convert function
+    for(int i = 0; i < 5; i++) {
+        color = color << 6;
+        color += binaryToInt(fgetc(sketch), 6);
+    }
+    // process color command
+    fgetc(sketch);
+    color = (color >> 16) & 255;
+    // printf("%ld\n", color);
+    return color;
+}
+
+void writePgm(int height, int width, unsigned char *matrix) {
+    FILE *pgmFile = fopen("test.pgm", "w+");
+    fprintf(pgmFile, "P5 %d %d %d\n", width, height, 255);
+    for(int i = 0; i < 200 * 200; i++) {
+        fputc(matrix[i], pgmFile);
+    }
+
+    fclose(pgmFile);
+    printf("File pgm has been written.\n");
+}
+
+// mostly just creates matrix
+void convertSkToPgm(char *filename) {
+    FILE *sk = fopen(filename, "rb");
+    unsigned char *matrix = malloc(200 * 200 + 1);
+    pgmPen *pen = malloc(sizeof(pgmPen));
+    pen->color = 0;
+    pen->x = 0;
+    pen->y = 0;
+    pen->active = 0;
+    int opCode = 0;
+    int operand = 0;
+
+    unsigned char currentByte = fgetc(sk);
+
+    while(!feof(sk)) {
+        opCode = getOpcode(currentByte);
+        operand = getOperand(currentByte);
+        switch(opCode) {
+            // dx - increment column
+            case 0:
+                pen->x += operand;
+                break;
+            // dy - draw line
+            case 1:
+                applyLine(matrix, pen, 200, 200, operand);
+                break;
+            // tool - line or none
+            case 2:
+                if(operand == 0) {
+                    pen->active = false;
+                } else {
+                    pen->active = true;
+                }
+                break;
+            // data aka color
+            case 3:
+                pen->color = getColor(sk, currentByte);
+                break;
+        }
+        currentByte = fgetc(sk);
+    }
+
+    writePgm(200, 200, matrix);
+    free(matrix);
+    free(pen);
 }
 
 
@@ -506,10 +628,9 @@ int main(int n, char *args[n]) {
 
         case 2: {
             if(args[1][strlen(args[1]) - 1] == 'm') {
-                convertToSk(args[1]);
+                convertPgmToSk(args[1]);
             } else if(args[1][strlen(args[1]) - 1] == 'k') {
-                // convert to pgm
-                // TODO
+                convertSkToPgm(args[1]);
             } else {
                 fprintf(stderr, "No valid file supplied\n");
             }
