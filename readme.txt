@@ -1,3 +1,5 @@
+This readme was created with a 100 word limit:
+
 Converter.c uses lines going {top to bottom, one to the right,
 back to the top, one to the right} repeatedly until the file is converted,
 using DY to draw lines without using absolute coordinates (run length encoding).
